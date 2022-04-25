@@ -1,16 +1,11 @@
-//Requiring mailchimp's module
-//For this we need to install the npm module @mailchimp/mailchimp_marketing. To do that we write:
-//npm install @mailchimp/mailchimp_marketing
 const mailchimp = require("@mailchimp/mailchimp_marketing");
-//Requiring express and body parser and initializing the constant "app"
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
-//Using bod-parser
+app.set("view engine", "ejs")
 app.use(bodyParser.urlencoded({
   extended: true
 }));
-//The public folder which holds the CSS
 app.use(express.static("public"));
 //Listening on port 3000 and if it goes well then logging a message saying that the server is running
 app.listen(process.env.PORT || 3000, function() {
@@ -22,18 +17,21 @@ app.get("/", function(req, res) {
 });
 //Setting up MailChimp
 mailchimp.setConfig({
-  //*****************************ENTER YOUR API KEY HERE******************************
+  //ENTER YOUR API KEY HERE
   apiKey: "ba1f304ba5b51fcf331319941358dcf1-us14",
-  //*****************************ENTER YOUR API KEY PREFIX HERE i.e.THE SERVER******************************
+  //ENTER YOUR API KEY PREFIX HERE i.e.THE SERVER
   server: "us14"
 });
+
+app.post("/failure", function(req, res){
+  res.redirect("/")
+})
+
 //As soon as the sign in button is pressed execute this
 app.post("/", function(req, res) {
-  //*****************************CHANGE THIS ACCORDING TO THE VALUES YOU HAVE ENTERED IN THE INPUT ATTRIBUTE IN HTML******************************
   const firstName = req.body.firstName;
   const secondName = req.body.secondName;
   const email = req.body.email;
-  //*****************************ENTER YOU LIST ID HERE******************************
   const listId = "86c4ecde15";
   //Creating an object with the users data
   const subscribingUser = {
