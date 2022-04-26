@@ -4,6 +4,9 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const _ = require("lodash");
 const app = express();
+const dotenv = require("dotenv")
+dotenv.config()
+const connectionString = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.99v3n.mongodb.net/todolistDB`
 
 //initialize
 app.set('view engine', 'ejs');
@@ -11,7 +14,7 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 app.use(express.static("public"));
-mongoose.connect("mongodb+srv://yuangli-admin:liyuang@612@cluster0.99v3n.mongodb.net/todolistDB", {
+mongoose.connect(connectionString, {
   useNewUrlParser: true
 });
 
