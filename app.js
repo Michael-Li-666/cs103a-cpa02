@@ -24,15 +24,15 @@ const Item = mongoose.model("Item", itemsSchema);
 
 //setting up the default items
 const item1 = new Item({
-  name: "Welcome to your CheckList!"
+  name: "Welcome to Ideas!"
 });
 
 const item2 = new Item({
-  name: "Hit the + button to add a new item."
+  name: "Hit the + button to add a new idea."
 });
 
 const item3 = new Item({
-  name: "<-- Hit this to delete an item."
+  name: "<-- Hit this to delete an idea.(if you think it's not interesting)"
 });
 
 const defaultItems = [item1, item2, item3];
