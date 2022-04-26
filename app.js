@@ -1,62 +1,159 @@
-const mailchimp = require("@mailchimp/mailchimp_marketing");
+//jshint esversion:6
+
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
+const _ = require("lodash");
 const app = express();
-app.set("view engine", "ejs")
+
+app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({
   extended: true
 }));
 app.use(express.static("public"));
-//Listening on port 3000 and if it goes well then logging a message saying that the server is running
-app.listen(process.env.PORT || 3000, function() {
-  console.log("Server is running at port 3000");
+mongoose.connect("mongodb+srv://yuangli-admin:liyuang@612@cluster0.99v3n.mongodb.net/todolistDB", {
+  useNewUrlParser: true
 });
-//Sending the signup.html file to the browser as soon as a request is made on localhost:3000
+
+const itemsSchema = {
+  name: String
+};
+
+const Item = mongoose.model("Item", itemsSchema);
+
+
+const item1 = new Item({
+  name: "Welcome to your CheckList!"
+});
+
+const item2 = new Item({
+  name: "Hit the + button to add a new item."
+});
+
+const item3 = new Item({
+  name: "<-- Hit this to delete an item."
+});
+
+const defaultItems = [item1, item2, item3];
+
+const listSchema = {
+  name: String,
+  items: [itemsSchema]
+};
+
+const List = mongoose.model("List", listSchema);
+
+
 app.get("/", function(req, res) {
-  res.sendFile(__dirname + "/signup.html");
-});
-//Setting up MailChimp
-mailchimp.setConfig({
-  //ENTER YOUR API KEY HERE
-  apiKey: "ba1f304ba5b51fcf331319941358dcf1-us14",
-  //ENTER YOUR API KEY PREFIX HERE i.e.THE SERVER
-  server: "us14"
+
+  Item.find({}, function(err, foundItems) {
+
+    if (foundItems.length === 0) {
+      Item.insertMany(defaultItems, function(err) {
+        if (err) {
+          console.log(err);
+        } else {
+          console.log("Successfully savevd default items to DB.");
+        }
+      });
+      res.redirect("/");
+    } else {
+      res.render("list", {
+        listTitle: "Today",
+        newListItems: foundItems
+      });
+    }
+  });
+
 });
 
-app.post("/failure", function(req, res){
-  res.redirect("/")
-})
+app.get("/:customListName", function(req, res) {
+  const customListName = _.capitalize(req.params.customListName);
 
-//As soon as the sign in button is pressed execute this
+  List.findOne({
+    name: customListName
+  }, function(err, foundList) {
+    if (!err) {
+      if (!foundList) {
+        //Create a new list
+        const list = new List({
+          name: customListName,
+          items: defaultItems
+        });
+        list.save();
+        res.redirect("/" + customListName);
+      } else {
+        //Show an existing list
+
+        res.render("list", {
+          listTitle: foundList.name,
+          newListItems: foundList.items
+        });
+      }
+    }
+  });
+
+
+
+});
+
 app.post("/", function(req, res) {
-  const firstName = req.body.firstName;
-  const secondName = req.body.secondName;
-  const email = req.body.email;
-  const listId = "86c4ecde15";
-  //Creating an object with the users data
-  const subscribingUser = {
-    firstName: firstName,
-    lastName: secondName,
-    email: email
-  };
-  //Uploading the data to the server
-  async function run() {
-    const response = await mailchimp.lists.addListMember(listId, {
-      email_address: subscribingUser.email,
-      status: "subscribed",
-      merge_fields: {
-        FNAME: subscribingUser.firstName,
-        LNAME: subscribingUser.lastName
+
+  const itemName = req.body.newItem;
+  const listName = req.body.list;
+
+  const item = new Item({
+    name: itemName
+  });
+
+  if (listName === "Today") {
+    item.save();
+    res.redirect("/");
+  } else {
+    List.findOne({
+      name: listName
+    }, function(err, foundList) {
+      foundList.items.push(item);
+      foundList.save();
+      res.redirect("/" + listName);
+    });
+  }
+});
+
+app.post("/delete", function(req, res) {
+  const checkedItemId = req.body.checkbox;
+  const listName = req.body.listName;
+
+  if (listName === "Today") {
+    Item.findByIdAndRemove(checkedItemId, function(err) {
+      if (!err) {
+        console.log("Successfully deleted checked item.");
+        res.redirect("/");
       }
     });
-    //If all goes well logging the contact's id
-    res.sendFile(__dirname + "/success.html")
-    console.log(
-      `Successfully added contact as an audience member. The contact's id is ${
- response.id
- }.`
-    );
+  } else {
+    List.findOneAndUpdate({
+      name: listName
+    }, {
+      $pull: {
+        items: {
+          _id: checkedItemId
+        }
+      }
+    }, function(err, foundList) {
+      if (!err) {
+        res.redirect("/" + listName);
+      }
+    });
   }
-  //Running the function and catching the errors
-  run().catch(e => res.sendFile(__dirname + "/failure.html"));
+
+
+});
+
+app.get("/about", function(req, res) {
+  res.render("about");
+});
+
+app.listen(3000, function() {
+  console.log("Server started on port 3000");
 });
